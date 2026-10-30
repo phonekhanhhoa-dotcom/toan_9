@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đấu Trường Toán 9 - Giữa Học Kỳ 1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body class="bg-slate-100 font-sans antialiased text-gray-800">
+
+    <!-- THAY LINK GOOGLE SHEET VÀO BÊN DƯỚI -->
+    <script>
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxU6U3jX1ouUfQLmTjeI-flolkQnP7WTP6EZeuSQxg4vrWFo0sKI6wkmSuIzWgr8wMD/exec";
+    </script>
+
+    <div id="app" class="max-w-md mx-auto min-h-screen bg-white shadow-2xl overflow-hidden flex flex-col relative">
+        <header class="bg-indigo-700 text-white text-center py-5 shadow-lg">
+            <h1 class="text-2xl font-black uppercase tracking-widest text-indigo-50">ĐẤU TRƯỜNG TOÁN 9</h1>
+            <p class="text-indigo-300 text-sm mt-1 font-semibold">ÔN TẬP GIỮA HỌC KỲ I</p>
+        </header>
+
+        <!-- Màn hình Đăng nhập -->
+        <div id="login-screen" class="p-6 flex-1 flex flex-col justify-center bg-slate-50">
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-6">
+                <div class="mb-5">
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Họ và tên học sinh:</label>
+                    <input type="text" id="student-name" placeholder="Ví dụ: Nguyễn Văn A..." class="w-full border-2 border-slate-200 rounded-xl p-3 outline-none focus:border-indigo-500 transition shadow-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Lớp:</label>
+                    <input type="text" id="student-class" placeholder="Ví dụ: 9A1..." class="w-full border-2 border-slate-200 rounded-xl p-3 outline-none focus:border-indigo-500 transition shadow-sm">
+                </div>
+            </div>
+            
+            <p class="text-center font-black mb-4 text-slate-500 uppercase text-xs tracking-widest border-b border-slate-200 pb-2">Chọn chủ đề thi đấu</p>
+            <div class="space-y-3 mb-6">
+                <button onclick="startGame('Hệ phương trình')" class="w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold shadow hover:bg-blue-700 transition">1. Phương Trình & Hệ PT</button>
+                <button onclick="startGame('Bất phương trình')" class="w-full bg-emerald-600 text-white py-3.5 rounded-xl font-bold shadow hover:bg-emerald-700 transition">2. Bất Đẳng Thức & Bất PT</button>
+                <button onclick="startGame('Căn bậc hai')" class="w-full bg-rose-600 text-white py-3.5 rounded-xl font-bold shadow hover:bg-rose-700 transition">3. Căn Bậc Hai</button>
+            </div>
+            
+            <p id="login-error" class="text-rose-500 text-center text-sm font-bold hidden bg-rose-50 p-2 rounded-lg">⚠️ Vui lòng nhập đầy đủ Họ tên và Lớp!</p>
+        </div>
+
+        <!-- Màn hình Thi đấu -->
+        <div id="game-screen" class="p-5 flex-1 flex flex-col hidden bg-slate-50">
+            <div class="flex justify-between items-center mb-5 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                <div class="text-center w-1/2 border-r border-slate-100">
+                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Điểm số</span>
+                    <span id="score-display" class="font-black text-2xl text-indigo-600">0</span>
+                </div>
+                <div class="text-center w-1/2">
+                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Combo</span>
+                    <span id="combo-display" class="font-black text-2xl text-amber-500">0 🔥</span>
+                </div>
+            </div>
+            
+            <div class="w-full bg-slate-200 rounded-full h-2 mb-6 overflow-hidden">
+                <div id="progress-bar" class="bg-indigo-600 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+
+            <div id="question-container" class="flex-1">
+                <h2 id="question-text" class="text-lg font-bold mb-6 text-slate-800 leading-relaxed bg-white p-4 rounded-xl border border-slate-200 shadow-sm min-h-[100px] flex items-center">Đang tải...</h2>
+                <div id="options-container" class="space-y-3"></div>
+            </div>
+
+            <div id="explanation-box" class="mt-5 p-4 bg-amber-50 border border-amber-200 text-amber-900 text-sm rounded-xl hidden shadow-sm leading-relaxed"></div>
+            
+            <button id="next-btn" onclick="nextQuestion()" class="w-full bg-indigo-600 text-white py-4 mt-6 rounded-xl font-bold shadow hover:bg-indigo-700 transition uppercase tracking-widest hidden">Câu tiếp theo ➔</button>
+        </div>
+
+        <!-- Màn hình Kết quả -->
+        <div id="result-screen" class="p-6 flex-1 flex flex-col justify-center items-center text-center hidden bg-slate-50">
+            <div class="text-7xl mb-4 animate-bounce">🏆</div>
+            <h2 class="text-3xl font-black mb-2 text-slate-800">HOÀN THÀNH!</h2>
+            <p class="text-slate-500 mb-8 font-semibold">Chủ đề: <span id="res-category" class="text-indigo-600 font-bold"></span></p>
+            
+            <div class="bg-white border border-slate-200 w-full p-6 rounded-2xl shadow-lg mb-8 relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-2 bg-indigo-600"></div>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Tổng điểm</p>
+                <p id="res-score" class="font-black text-indigo-600 text-6xl my-2">0</p>
+                <div class="flex justify-between mt-6 pt-4 border-t border-slate-100">
+                    <div class="text-center w-1/2 border-r border-slate-100">
+                        <p class="text-[10px] uppercase font-bold text-slate-400">Tỷ lệ đúng</p>
+                        <p id="res-correct" class="font-black text-lg text-slate-700">0</p>
+                    </div>
+                    <div class="text-center w-1/2">
+                        <p class="text-[10px] uppercase font-bold text-slate-400">Combo tối đa</p>
+                        <p id="res-combo" class="font-black text-lg text-amber-500">0 🔥</p>
+                    </div>
+                </div>
+            </div>
+            
+            <p id="res-title" class="text-xl font-black text-rose-600 mb-6 uppercase tracking-wider bg-rose-50 px-4 py-2 rounded-full border border-rose-100"></p>
+            <p id="saving-status" class="text-sm font-bold text-indigo-500 mb-8 animate-pulse">⏳ Đang lưu kết quả...</p>
+            
+            <div class="w-full space-y-3 flex gap-3">
+                <button onclick="showLeaderboard()" class="flex-1 bg-amber-400 text-amber-900 py-4 rounded-xl font-black shadow hover:bg-amber-500 transition text-sm">BẢNG VÀNG</button>
+                <button onclick="location.reload()" class="flex-1 bg-slate-200 text-slate-700 py-4 rounded-xl font-black hover:bg-slate-300 transition text-sm">CHƠI LẠI</button>
+            </div>
+        </div>
+
+        <!-- Bảng xếp hạng -->
+        <div id="leaderboard-modal" class="absolute inset-0 bg-slate-50 z-50 flex flex-col hidden">
+            <header class="bg-amber-500 text-white text-center py-5 shadow-lg flex justify-between px-6 items-center">
+                <h1 class="text-xl font-black tracking-widest">TOP 10 BẢNG VÀNG</h1>
+                <button onclick="document.getElementById('leaderboard-modal').classList.add('hidden')" class="text-3xl leading-none font-bold opacity-80 hover:opacity-100">&times;</button>
+            </header>
+            <div class="p-5 overflow-y-auto flex-1">
+                <p id="lb-loading" class="text-center font-bold text-slate-400 mt-10">Đang tải dữ liệu...</p>
+                <ul id="lb-list" class="space-y-3"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allQuestions = [], currentQuestions = [], currentIdx = 0, score = 0, combo = 0, maxCombo = 0, correctAnswers = 0;
+        let student = { name: "", className: "", category: "" };
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        async function fetchQuestions() {
+            if(SCRIPT_URL.includes("DÁN_LINK")) return;
+            try {
+                let res = await fetch(SCRIPT_URL + "?action=getQuestions");
+                let data = await res.json();
+                allQuestions = data.data;
+            } catch (e) { console.log(e); }
+        }
+
+        async function startGame(category) {
+            let name = document.getElementById("student-name").value.trim();
+            let className = document.getElementById("student-class").value.trim();
+            if(!name || !className) {
+                document.getElementById("login-error").classList.remove("hidden");
+                return;
+            }
+            student = { name, className, category };
+            
+            if(allQuestions.length === 0) await fetchQuestions();
+
+            currentQuestions = shuffle(allQuestions.filter(q => q.category === category));
+            if(currentQuestions.length === 0) currentQuestions = shuffle(allQuestions); 
+
+            document.getElementById("login-screen").classList.add("hidden");
+            document.getElementById("game-screen").classList.remove("hidden");
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            if (currentIdx >= currentQuestions.length) { endGame(); return; }
+
+            let q = currentQuestions[currentIdx];
+            document.getElementById("question-text").innerHTML = `<span class="text-indigo-600 mr-2">Câu ${currentIdx + 1}:</span> ${q.question}`;
+            document.getElementById("progress-bar").style.width = `${(currentIdx / currentQuestions.length) * 100}%`;
+            
+            let opts = q.options.map((text, idx) => ({ text, isCorrect: idx === q.correct }));
+            shuffle(opts);
+
+            document.getElementById("options-container").innerHTML = opts.map(opt => `
+                <button onclick="checkAnswer(this, ${opt.isCorrect}, '${q.explanation.replace(/'/g, "\\'")}')" 
+                        class="opt-btn w-full text-left p-4 bg-white border-2 border-slate-200 rounded-xl hover:border-indigo-400 hover:shadow-md transition font-medium text-slate-700">
+                    ${opt.text}
+                </button>
+            `).join("");
+
+            document.getElementById("explanation-box").classList.add("hidden");
+            document.getElementById("next-btn").classList.add("hidden");
+            if (window.MathJax) MathJax.typesetPromise();
+        }
+
+        function checkAnswer(btn, isCorrect, explanation) {
+            let btns = document.querySelectorAll(".opt-btn");
+            btns.forEach(b => b.disabled = true);
+
+            if (isCorrect) {
+                btn.classList.replace("border-slate-200", "border-emerald-500");
+                btn.classList.add("bg-emerald-50", "text-emerald-800");
+                score += 10; combo++; correctAnswers++;
+                if (combo >= 3) score += 10;
+                if (combo > maxCombo) maxCombo = combo;
+            } else {
+                btn.classList.replace("border-slate-200", "border-rose-500");
+                btn.classList.add("bg-rose-50", "text-rose-800");
+                combo = 0;
+                btns.forEach(b => {
+                    if(b.onclick.toString().includes('true')) {
+                        b.classList.replace("border-slate-200", "border-emerald-500");
+                        b.classList.add("bg-emerald-50");
+                    }
+                });
+            }
+
+            document.getElementById("score-display").innerText = score;
+            document.getElementById("combo-display").innerText = `${combo} 🔥`;
+            
+            let expBox = document.getElementById("explanation-box");
+            expBox.innerHTML = `<strong class="text-amber-700 uppercase text-xs tracking-widest block mb-1">💡 Giải thích:</strong> ${explanation}`;
+            expBox.classList.remove("hidden");
+            document.getElementById("next-btn").classList.remove("hidden");
+            if (window.MathJax) MathJax.typesetPromise();
+        }
+
+        function nextQuestion() { currentIdx++; renderQuestion(); }
+
+        async function endGame() {
+            document.getElementById("game-screen").classList.add("hidden");
+            document.getElementById("result-screen").classList.remove("hidden");
+            
+            let ratio = correctAnswers / currentQuestions.length;
+            let title = ratio === 1 ? "Thiên Tài Toán Học 🌟" : ratio >= 0.8 ? "Học Sinh Giỏi 🏅" : ratio >= 0.5 ? "Học Sinh Khá 🎖️" : "Tân Binh 🚀";
+
+            document.getElementById("res-category").innerText = student.category;
+            document.getElementById("res-score").innerText = score;
+            document.getElementById("res-correct").innerText = `${correctAnswers}/${currentQuestions.length}`;
+            document.getElementById("res-combo").innerText = `${maxCombo} 🔥`;
+            document.getElementById("res-title").innerText = title;
+
+            let params = new URLSearchParams({
+                action: "saveScore", category: student.category, name: student.name, className: student.className,
+                score: score, correctRatio: `${correctAnswers}/${currentQuestions.length}`, maxCombo: maxCombo, title: title
+            });
+
+            try {
+                await fetch(SCRIPT_URL + "?" + params.toString());
+                document.getElementById("saving-status").innerHTML = "✅ Đã lưu kết quả lên hệ thống!";
+                document.getElementById("saving-status").classList.replace("text-indigo-500", "text-emerald-600");
+                document.getElementById("saving-status").classList.remove("animate-pulse");
+            } catch (e) {
+                document.getElementById("saving-status").innerHTML = "❌ Lỗi mạng: Chưa thể lưu kết quả.";
+                document.getElementById("saving-status").classList.replace("text-indigo-500", "text-rose-500");
+            }
+        }
+
+        async function showLeaderboard() {
+            if(SCRIPT_URL.includes("DÁN_LINK")) { alert("Vui lòng cập nhật link Google Sheet!"); return; }
+            document.getElementById("leaderboard-modal").classList.remove("hidden");
+            document.getElementById("lb-loading").classList.remove("hidden");
+            document.getElementById("lb-list").innerHTML = "";
+            
+            try {
+                let res = await fetch(SCRIPT_URL + `?action=getLeaderboard&category=${student.category}`);
+                let data = await res.json();
+                document.getElementById("lb-loading").classList.add("hidden");
+                
+                if(data.data.length === 0) {
+                    document.getElementById("lb-list").innerHTML = "<p class='text-center text-slate-400 font-medium mt-10'>Chưa có cao thủ nào ghi danh.</p>";
+                    return;
+                }
+
+                let medals = ["🥇", "🥈", "🥉"];
+                document.getElementById("lb-list").innerHTML = data.data.map((p, i) => `
+                    <li class="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-100 relative overflow-hidden">
+                        ${i < 3 ? '<div class="absolute left-0 top-0 bottom-0 w-1 bg-amber-400"></div>' : ''}
+                        <div class="flex items-center gap-4 pl-2">
+                            <span class="text-3xl w-10 text-center font-black drop-shadow-sm">${medals[i] || `<span class="text-slate-300 text-2xl">${i+1}</span>`}</span>
+                            <div>
+                                <p class="font-black text-slate-800">${p.name}</p>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <span class="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-bold">${p.className}</span>
+                                    <span class="text-[10px] text-amber-600 font-bold">Combo: ${p.maxCombo} 🔥</span>
+                                </div>
+                            </div>
+                        </div>
+                        <span class="font-black text-2xl text-indigo-600 mr-2">${p.score}</span>
+                    </li>
+                `).join("");
+            } catch (e) { document.getElementById("lb-loading").innerText = "Lỗi tải dữ liệu bảng xếp hạng."; }
+        }
+        
+        fetchQuestions();
+    </script>
+</body>
+</html>
